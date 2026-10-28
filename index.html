@@ -474,7 +474,8 @@
         <div class="step">
           <div class="step-h"><b><em>02</em>Your costs per ton</b><span class="label" id="cost-ccy">In Rand</span></div>
           <div class="field"><label for="c-sea">Sea freight<small>Port of loading to destination</small></label><div class="money"><span data-sym>R</span><input id="c-sea" inputmode="decimal" placeholder="0.00" data-cost="sea" autocomplete="off"><em>/t</em></div></div>
-          <div class="field"><label for="c-cont">Container rate<small>Containerised shipping, per ton</small></label><div class="money"><span data-sym>R</span><input id="c-cont" inputmode="decimal" placeholder="0.00" data-cost="cont" autocomplete="off"><em>/t</em></div></div>
+          <div class="field"><label for="c-cont">Container rate<small>Containerised shipping, per container</small></label><div class="money"><span data-sym>R</span><input id="c-cont" inputmode="decimal" placeholder="0.00" data-cost="cont" autocomplete="off"><em>/ctr</em></div></div>
+          <div class="field"><label for="c-ctons">Tons per container<small id="c-ctons-hint">Converts the container rate to per ton</small></label><div class="money"><input id="c-ctons" inputmode="decimal" placeholder="e.g. 26" autocomplete="off" style="text-align:right;padding-left:12px"><em>t</em></div></div>
           <div class="field"><label for="c-fob">FOB costs<small>Port handling, loading, documentation</small></label><div class="money"><span data-sym>R</span><input id="c-fob" inputmode="decimal" placeholder="0.00" data-cost="fob" autocomplete="off"><em>/t</em></div></div>
           <div class="field"><label for="c-haul">Local haul<small>Mine or stockpile to port</small></label><div class="money"><span data-sym>R</span><input id="c-haul" inputmode="decimal" placeholder="0.00" data-cost="haul" autocomplete="off"><em>/t</em></div></div>
         </div>
@@ -588,7 +589,7 @@
   var byKey = {}; GRADES.forEach(function (g) { byKey[g.key] = g; });
 
   var state = { ccy: 'ZAR', fx: null, fxDate: null, fxLive: false, rows: [], hist: {}, histKey: 'za_40_42',
-    calc: { grade: 'za_40_42', sea: null, cont: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] } };
+    calc: { grade: 'za_40_42', sea: null, cont: null, ctons: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] } };
   try {
     var savedCcy = localStorage.getItem('cba-ccy'); if (savedCcy === 'USD' || savedCcy === 'ZAR') state.ccy = savedCcy;
     var savedCalc = JSON.parse(localStorage.getItem('cba-ground-calc') || 'null');
@@ -809,6 +810,7 @@
     $('cost-ccy').textContent = state.ccy === 'ZAR' ? 'In Rand' : 'In US dollars';
     document.querySelectorAll('input[data-cost]').forEach(function (inp) { inp.value = showMoney(state.calc[inp.getAttribute('data-cost')]); });
     $('c-tons').value = state.calc.tons == null ? '' : String(state.calc.tons);
+    $('c-ctons').value = state.calc.ctons == null ? '' : String(state.calc.ctons);
     renderSundries();
   }
   function renderSundries() {
@@ -828,7 +830,10 @@
   function renderResult() {
     var g = byKey[state.calc.grade], l = latest(g.key); if (!l) return;
     var cif = toCcy(Number(l.price_usd)), c = state.calc;
-    var sea = toCcy(c.sea || 0), cont = toCcy(c.cont || 0), fob = toCcy(c.fob || 0), haul = toCcy(c.haul || 0);
+    var contBox = toCcy(c.cont || 0), cont = c.ctons > 0 ? contBox / c.ctons : 0;
+    var sea = toCcy(c.sea || 0), fob = toCcy(c.fob || 0), haul = toCcy(c.haul || 0);
+    $('c-ctons-hint').textContent = contBox > 0 && c.ctons > 0 ? fmt(contBox) + ' ÷ ' + c.ctons + ' t = ' + fmt(cont, 2) + '/t'
+      : contBox > 0 ? 'Enter tons per container to apply the container rate' : 'Converts the container rate to per ton';
     var sund = c.sundries.reduce(function (a, s) { return a + toCcy(s.usd || 0); }, 0);
     var fobValue = cif - sea - cont, ground = fobValue - fob - haul - sund;
     $('r-grade').textContent = g.name + ' Cr₂O₃';
@@ -843,7 +848,7 @@
     var max = Math.max(cif, 1), steps = [
       { t: 'CIF price', s: 'Bulk, per metric ton', cls: 'base', left: 0, width: cif / max, v: fmt(cif) },
       { t: 'Sea freight', s: 'Deducted', cls: 'cost', left: Math.max(0, cif - sea) / max, width: sea / max, v: sea ? '−' + fmt(sea) : fmt(0) },
-      { t: 'Container rate', s: 'Deducted', cls: 'cost', left: Math.max(0, fobValue) / max, width: cont / max, v: cont ? '−' + fmt(cont) : fmt(0) },
+      { t: 'Container rate', s: cont ? fmt(contBox) + ' ÷ ' + c.ctons + ' t' : 'Deducted', cls: 'cost', left: Math.max(0, fobValue) / max, width: cont / max, v: cont ? '−' + fmt(cont) : fmt(0) },
       { t: 'FOB value', s: 'Price at port of loading', cls: 'mid', left: 0, width: Math.max(0, fobValue) / max, v: fmt(fobValue), milestone: true },
       { t: 'FOB costs', s: 'Port handling', cls: 'cost', left: Math.max(0, fobValue - fob) / max, width: fob / max, v: fob ? '−' + fmt(fob) : fmt(0) },
       { t: 'Local haul', s: 'To port', cls: 'cost', left: Math.max(0, fobValue - fob - haul) / max, width: haul / max, v: haul ? '−' + fmt(haul) : fmt(0) },
@@ -892,12 +897,13 @@
     inp.addEventListener('input', function () { var v = parseMoney(inp.value); state.calc[inp.getAttribute('data-cost')] = v == null ? null : fromCcy(v); saveCalc(); renderResult(); });
   });
   $('c-tons').addEventListener('input', function () { state.calc.tons = parseMoney($('c-tons').value); saveCalc(); renderResult(); });
+  $('c-ctons').addEventListener('input', function () { state.calc.ctons = parseMoney($('c-ctons').value); saveCalc(); renderResult(); });
   $('add-sundry').addEventListener('click', function () {
     state.calc.sundries.push({ label: '', usd: null }); saveCalc(); renderSundries();
     var rows = $('sundries').querySelectorAll('.sundry'); rows[rows.length - 1].querySelector('input.name').focus();
   });
   $('reset').addEventListener('click', function () {
-    state.calc = { grade: state.calc.grade, sea: null, cont: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] };
+    state.calc = { grade: state.calc.grade, sea: null, cont: null, ctons: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] };
     saveCalc(); renderCostInputs(); renderResult();
   });
 
