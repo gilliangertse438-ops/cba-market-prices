@@ -249,7 +249,7 @@
   .live-bar { display: flex; height: 8px; border-radius: 6px; overflow: hidden; background: rgba(248,246,240,0.06); }
   .live-bar i { display: block; height: 100%; width: 0; transition: width .5s var(--ease-out); }
   .live-bar .g { background: linear-gradient(90deg, rgba(95,208,138,0.55), var(--up)); }
-  .live-bar .c1 { background: #e2725b; } .live-bar .c2 { background: #c98a5b; } .live-bar .c3 { background: #b06a4e; } .live-bar .c4 { background: #8f5a48; }
+  .live-bar .c1 { background: #e2725b; } .live-bar .c2 { background: #c98a5b; } .live-bar .c3 { background: #b06a4e; } .live-bar .c4 { background: #8f5a48; } .live-bar .c5 { background: #f0a07e; }
   .live-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10.5px; color: var(--white-mute); }
   .live-legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   .live-legend i { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
@@ -456,9 +456,10 @@
             <div><span class="label">Ground price · <span id="l-grade"></span></span><span class="num live-price" id="l-ground">&nbsp;</span></div>
             <div class="live-math"><span>CIF <b id="l-cif"></b></span><span>Costs <b id="l-cost"></b></span></div>
           </div>
-          <div class="live-bar"><i class="g" id="lb-g"></i><i class="c1" id="lb-sea"></i><i class="c2" id="lb-fob"></i><i class="c3" id="lb-haul"></i><i class="c4" id="lb-sun"></i></div>
+          <div class="live-bar"><i class="g" id="lb-g"></i><i class="c1" id="lb-sea"></i><i class="c5" id="lb-cont"></i><i class="c2" id="lb-fob"></i><i class="c3" id="lb-haul"></i><i class="c4" id="lb-sun"></i></div>
           <div class="live-legend">
             <span><i style="background:#e2725b"></i>Sea <b id="ll-sea"></b></span>
+            <span><i style="background:#f0a07e"></i>Container <b id="ll-cont"></b></span>
             <span><i style="background:#c98a5b"></i>FOB <b id="ll-fob"></b></span>
             <span><i style="background:#b06a4e"></i>Haul <b id="ll-haul"></b></span>
             <span><i style="background:#8f5a48"></i>Sundries <b id="ll-sun"></b></span>
@@ -473,6 +474,7 @@
         <div class="step">
           <div class="step-h"><b><em>02</em>Your costs per ton</b><span class="label" id="cost-ccy">In Rand</span></div>
           <div class="field"><label for="c-sea">Sea freight<small>Port of loading to destination</small></label><div class="money"><span data-sym>R</span><input id="c-sea" inputmode="decimal" placeholder="0.00" data-cost="sea" autocomplete="off"><em>/t</em></div></div>
+          <div class="field"><label for="c-cont">Container rate<small>Containerised shipping, per ton</small></label><div class="money"><span data-sym>R</span><input id="c-cont" inputmode="decimal" placeholder="0.00" data-cost="cont" autocomplete="off"><em>/t</em></div></div>
           <div class="field"><label for="c-fob">FOB costs<small>Port handling, loading, documentation</small></label><div class="money"><span data-sym>R</span><input id="c-fob" inputmode="decimal" placeholder="0.00" data-cost="fob" autocomplete="off"><em>/t</em></div></div>
           <div class="field"><label for="c-haul">Local haul<small>Mine or stockpile to port</small></label><div class="money"><span data-sym>R</span><input id="c-haul" inputmode="decimal" placeholder="0.00" data-cost="haul" autocomplete="off"><em>/t</em></div></div>
         </div>
@@ -586,7 +588,7 @@
   var byKey = {}; GRADES.forEach(function (g) { byKey[g.key] = g; });
 
   var state = { ccy: 'ZAR', fx: null, fxDate: null, fxLive: false, rows: [], hist: {}, histKey: 'za_40_42',
-    calc: { grade: 'za_40_42', sea: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] } };
+    calc: { grade: 'za_40_42', sea: null, cont: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] } };
   try {
     var savedCcy = localStorage.getItem('cba-ccy'); if (savedCcy === 'USD' || savedCcy === 'ZAR') state.ccy = savedCcy;
     var savedCalc = JSON.parse(localStorage.getItem('cba-ground-calc') || 'null');
@@ -826,9 +828,9 @@
   function renderResult() {
     var g = byKey[state.calc.grade], l = latest(g.key); if (!l) return;
     var cif = toCcy(Number(l.price_usd)), c = state.calc;
-    var sea = toCcy(c.sea || 0), fob = toCcy(c.fob || 0), haul = toCcy(c.haul || 0);
+    var sea = toCcy(c.sea || 0), cont = toCcy(c.cont || 0), fob = toCcy(c.fob || 0), haul = toCcy(c.haul || 0);
     var sund = c.sundries.reduce(function (a, s) { return a + toCcy(s.usd || 0); }, 0);
-    var fobValue = cif - sea, ground = cif - sea - fob - haul - sund;
+    var fobValue = cif - sea - cont, ground = fobValue - fob - haul - sund;
     $('r-grade').textContent = g.name + ' Cr₂O₃';
     $('r-country').textContent = g.country;
     tweenNum($('r-ground'), ground, function (v) { return fmt(v); }, 600);
@@ -840,7 +842,8 @@
 
     var max = Math.max(cif, 1), steps = [
       { t: 'CIF price', s: 'Bulk, per metric ton', cls: 'base', left: 0, width: cif / max, v: fmt(cif) },
-      { t: 'Sea freight', s: 'Deducted', cls: 'cost', left: Math.max(0, fobValue) / max, width: sea / max, v: sea ? '−' + fmt(sea) : fmt(0) },
+      { t: 'Sea freight', s: 'Deducted', cls: 'cost', left: Math.max(0, cif - sea) / max, width: sea / max, v: sea ? '−' + fmt(sea) : fmt(0) },
+      { t: 'Container rate', s: 'Deducted', cls: 'cost', left: Math.max(0, fobValue) / max, width: cont / max, v: cont ? '−' + fmt(cont) : fmt(0) },
       { t: 'FOB value', s: 'Price at port of loading', cls: 'mid', left: 0, width: Math.max(0, fobValue) / max, v: fmt(fobValue), milestone: true },
       { t: 'FOB costs', s: 'Port handling', cls: 'cost', left: Math.max(0, fobValue - fob) / max, width: fob / max, v: fob ? '−' + fmt(fob) : fmt(0) },
       { t: 'Local haul', s: 'To port', cls: 'cost', left: Math.max(0, fobValue - fob - haul) / max, width: haul / max, v: haul ? '−' + fmt(haul) : fmt(0) },
@@ -858,7 +861,7 @@
       requestAnimationFrame(function () { bar.style.left = (left * 100) + '%'; bar.style.width = (width > 0 ? Math.max(0.5, width * 100) : 0) + '%'; });
     });
 
-    renderLive(g, cif, sea, fob, haul, sund, ground);
+    renderLive(g, cif, sea, cont, fob, haul, sund, ground);
 
     var tons = c.tons;
     $('r-parcel').hidden = !(tons > 0);
@@ -866,19 +869,20 @@
     $('r-note').textContent = 'CIF price as at ' + fmtDate(l.observed_on) + (state.ccy === 'ZAR' ? ', converted at R ' + fxRate().toFixed(2) + '/$' + (state.fxLive ? '' : ' (approximate rate)') : '') + '.';
   }
   var lastGround = null;
-  function renderLive(g, cif, sea, fob, haul, sund, ground) {
-    var live = $('live'), total = Math.max(cif, sea + fob + haul + sund, 1);
+  function renderLive(g, cif, sea, cont, fob, haul, sund, ground) {
+    var live = $('live'), total = Math.max(cif, sea + cont + fob + haul + sund, 1);
     $('l-grade').textContent = g.name.replace('South Africa', 'SA').replace('Zimbabwe', 'ZW');
     tweenNum($('l-ground'), ground, function (v) { return fmt(v); }, 450);
     $('l-cif').textContent = fmt(cif);
-    $('l-cost').textContent = '−' + fmt(sea + fob + haul + sund);
+    $('l-cost').textContent = '−' + fmt(sea + cont + fob + haul + sund);
     live.classList.toggle('neg', ground < 0);
     $('lb-g').style.width = (Math.max(0, ground) / total * 100) + '%';
     $('lb-sea').style.width = (sea / total * 100) + '%';
+    $('lb-cont').style.width = (cont / total * 100) + '%';
     $('lb-fob').style.width = (fob / total * 100) + '%';
     $('lb-haul').style.width = (haul / total * 100) + '%';
     $('lb-sun').style.width = (sund / total * 100) + '%';
-    $('ll-sea').textContent = fmt(sea, 0); $('ll-fob').textContent = fmt(fob, 0);
+    $('ll-sea').textContent = fmt(sea, 0); $('ll-cont').textContent = fmt(cont, 0); $('ll-fob').textContent = fmt(fob, 0);
     $('ll-haul').textContent = fmt(haul, 0); $('ll-sun').textContent = fmt(sund, 0);
     if (lastGround != null && lastGround !== ground && !reduceMotion) { live.classList.remove('bump'); void live.offsetWidth; live.classList.add('bump'); }
     lastGround = ground;
@@ -893,7 +897,7 @@
     var rows = $('sundries').querySelectorAll('.sundry'); rows[rows.length - 1].querySelector('input.name').focus();
   });
   $('reset').addEventListener('click', function () {
-    state.calc = { grade: state.calc.grade, sea: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] };
+    state.calc = { grade: state.calc.grade, sea: null, cont: null, fob: null, haul: null, tons: null, sundries: [{ label: 'Operations', usd: null }, { label: 'Lab & assay', usd: null }] };
     saveCalc(); renderCostInputs(); renderResult();
   });
 
