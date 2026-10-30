@@ -6,7 +6,8 @@
 <title>Chrome Ore Price Index | ChromeBridge Africa</title>
 <meta name="description" content="CIF bulk prices for South African and Zimbabwean chrome ore concentrate in Rand and US dollars, with a calculator to work out your on-the-ground price.">
 <meta name="robots" content="noindex">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" href="https://chromebridgeafrica.com/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="https://chromebridgeafrica.com/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap">
@@ -325,7 +326,7 @@
   @media (max-width: 560px) {
     .wrap { padding-inline: 16px; }
     nav { width: calc(100% - 24px); top: 12px; padding: 8px 8px 8px 14px; }
-    .nav-logo-text { display: none; }
+    .nav-logo-text, .cba-lockup-word { display: none; }
     .nav-cta { padding: 6px; } .nav-cta span { display: none; }
     .hero { padding-top: 104px; }
     .sec { padding-block: 64px; }
@@ -347,6 +348,24 @@
   }
 </style>
 <script>document.documentElement.classList.add('js');</script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap">
+<style id="cba-brand">
+  /* Official ChromeBridge Africa logo lockup */
+  .cba-lockup { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+  .cba-lockup-emblem { height: 38px; width: auto; display: block; flex-shrink: 0; }
+  .cba-lockup-word { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+  .cba-lockup-main {
+    font-family: 'Cinzel', 'Times New Roman', serif; font-weight: 700; font-size: 16px; letter-spacing: 0.03em;
+    color: #d9ad2f; background: linear-gradient(180deg, #f7e27d 0%, #dcb13a 50%, #a97c14 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .cba-lockup-sub {
+    font-family: 'Cinzel', 'Times New Roman', serif; font-weight: 600; font-size: 8.5px;
+    letter-spacing: 0.45em; padding-left: 0.45em; margin-top: 3px; color: #6fae74;
+  }
+  .cba-logo-full { display: block; height: auto; max-width: 100%; }
+  @media (max-width: 380px) { .cba-lockup-word { display: none; } }
+</style>
 </head>
 <body>
 
@@ -355,9 +374,8 @@
 <div id="cursor-ring" aria-hidden="true"></div>
 
 <nav id="navbar" aria-label="Main">
-  <a href="https://chromebridgeafrica.com/landing.html" class="nav-logo">
-    <div class="nav-logo-icon">C</div>
-    <span class="nav-logo-text">Chrome<span>Bridge</span> Africa</span>
+  <a href="https://chromebridgeafrica.com/landing.html" class="nav-logo cba-lockup" aria-label="ChromeBridge Africa home">
+    <img class="cba-lockup-emblem" src="https://chromebridgeafrica.com/assets/cba-emblem-240.png" alt="" width="78" height="38"><span class="cba-lockup-word"><span class="cba-lockup-main">ChromeBridge</span><span class="cba-lockup-sub">Africa</span></span>
   </a>
   <ul class="nav-links">
     <li><a href="https://chromebridgeafrica.com/landing.html">Platform</a></li>
